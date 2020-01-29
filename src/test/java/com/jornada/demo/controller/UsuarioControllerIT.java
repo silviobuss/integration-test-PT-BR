@@ -1,11 +1,10 @@
 package com.jornada.demo.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jayway.restassured.RestAssured;
-import com.jornada.demo.domain.Contato;
-import com.jornada.demo.domain.TipoTelefoneEnum;
-import com.jornada.demo.domain.Usuario;
+import static com.jayway.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.notNullValue;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -14,9 +13,12 @@ import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import static com.jayway.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.restassured.RestAssured;
+import com.jornada.demo.domain.Contato;
+import com.jornada.demo.domain.TipoTelefoneEnum;
+import com.jornada.demo.domain.Usuario;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -39,12 +41,7 @@ public class UsuarioControllerIT {
 
         given()
                 .header("Content-Type", "application/json")
-                .body(usuario) //a biblioteca faz a "conversão" para JSON de forma automática.
-                .when()
-                .post("/usuarios").prettyPrint();
-        given()
-                .header("Content-Type", "application/json")
-                .body(usuario)
+                .body(usuario)//o Rest Assured faz a "conversão" para JSON de forma automática.
                 .when()
                 .post("/usuarios")
                 .then()
@@ -63,31 +60,31 @@ public class UsuarioControllerIT {
         Usuario usuarioCriado = criarUsuarioPelaAPI();
         given()
                 .when()
-                .get("/usuarios/".concat(usuarioCriado.getId().toString())).prettyPrint();
-        given()
-                .when()
                 .get("/usuarios/".concat(usuarioCriado.getId().toString()))
                 .then()
                 .statusCode(HttpStatus.OK.value())
-                .body("id", equalTo(usuarioCriado.getId().intValue()));
+                .body("id", equalTo(usuarioCriado.getId().intValue()))
+                .body("nome", equalTo("Joseph"))
+                .body("sobrenome", equalTo("Cooper Murphy"))
+                .body("idade", equalTo(50))
+                .body("contatos[0].id", notNullValue())
+                .body("contatos[0].tipo", equalTo("CELULAR"))
+                .body("contatos[0].telefone", equalTo("1234-5678"));
     }
 
     /**
      * O teste valida a mensagem e o código de erro que veio do servidor.
      * <p>
      * Note que está retornando o erro 500 pois não tratamos os erros de API (4XX e 5XX) neste projeto de demonstração.
-     * O ideal é possuir um tratamento de exceções HTTP e filtros para padronização das mensagem de erros.
+     * O ideal é possuir um tratamento de exceções HTTP e filtros para padronização das mensagens de erros.
      */
     @Test
     public void quandoBuscarPeloIdInvalidoEntaoRetornaErro() {
         given()
                 .when()
-                .get("/usuarios/99999999").prettyPrint();
-        given()
-                .when()
                 .get("/usuarios/99999999")
                 .then()
-                .statusCode(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .statusCode(500)
                 .body("message", equalTo("Usuário não encontrado com id: 99999999"));
     }
 
@@ -104,7 +101,7 @@ public class UsuarioControllerIT {
     }
 
     private Usuario criarUsuarioPelaAPI() {
-        Usuario usuario = montarUsuarioParaCriacao("Forrest", "Gump", 50, TipoTelefoneEnum.CELULAR, "1234-5678");
+        Usuario usuario = montarUsuarioParaCriacao("Joseph", "Cooper Murphy", 50, TipoTelefoneEnum.CELULAR, "1234-5678");
         return given()
                 .header("Content-Type", "application/json")
                 .body(usuario) //a biblioteca faz a "conversão" para JSON de forma automática.
