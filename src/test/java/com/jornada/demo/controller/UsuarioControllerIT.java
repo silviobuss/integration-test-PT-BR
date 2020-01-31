@@ -1,14 +1,18 @@
 package com.jornada.demo.controller;
 
 import static com.jayway.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.junit4.SpringRunner;
@@ -21,21 +25,49 @@ import com.jornada.demo.domain.TipoTelefoneEnum;
 import com.jornada.demo.domain.Usuario;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 public class UsuarioControllerIT {
 
     @LocalServerPort
     private int port;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         RestAssured.port = port;
     }
 
+    /**
+     * Utilizando Map como entrada
+     */
     @Test
-    public void quandoCriarUsuarioEntaoRetornaEntidade() throws JsonProcessingException {
-        Usuario usuario = montarUsuarioParaCriacao("Forrest", "Gump", 50, TipoTelefoneEnum.CELULAR, "1234-5678");
-        //somente para visualizar o JSON que será enviado no corpo da nossa requisição
+    public void quandoCriarUsuarioEntaoRetornaObjetoUsuario() {
+
+        Map<String, Object> usuarioMap = new HashMap<>();
+        usuarioMap.put("nome", "Forrest");
+        usuarioMap.put("sobrenome", "Gump");
+        usuarioMap.put("idade", String.valueOf(20));
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(usuarioMap)//o Rest Assured faz a "conversão" para JSON de forma automática.
+                .when()
+                .post("/usuarios")
+                .then()
+                .statusCode(HttpStatus.CREATED.value())
+                .body("id", notNullValue())
+                .body("nome", equalTo("Forrest"))
+                .body("sobrenome", equalTo("Gump"))
+                .body("idade", equalTo(20))
+                .body("contatos", empty());
+    }
+
+    /**
+     * Utilizando Objeto java como entrada
+     */
+    @Test
+    public void quandoCriarUsuarioComContatoEntaoRetornaObjetoComListaContatos() throws JsonProcessingException {
+        Usuario usuario = montarObjetoUsuarioParaCriacao("Forrest", "Gump", 50, TipoTelefoneEnum.CELULAR, "1234-5678");
+        //Isto é somente para visualizarmos o JSON que será enviado no corpo da nossa requisição
         String result = new ObjectMapper().writeValueAsString(usuario);
         System.out.println("JSON -> " + result);
 
@@ -88,20 +120,18 @@ public class UsuarioControllerIT {
                 .body("message", equalTo("Usuário não encontrado com id: 99999999"));
     }
 
-    private Usuario montarUsuarioParaCriacao(String nome, String sobrenome, int idade, TipoTelefoneEnum tipo, String telefone) {
+    private Usuario montarObjetoUsuarioParaCriacao(String nome, String sobrenome, int idade, TipoTelefoneEnum tipo, String telefone) {
         Usuario usuario = new Usuario(nome, sobrenome, idade);
-
         Contato contato = new Contato();
         contato.setTipo(tipo);
         contato.setTelefone(telefone);
         contato.setUsuario(usuario);
-
         usuario.getContatos().add(contato);
         return usuario;
     }
 
     private Usuario criarUsuarioPelaAPI() {
-        Usuario usuario = montarUsuarioParaCriacao("Joseph", "Cooper Murphy", 50, TipoTelefoneEnum.CELULAR, "1234-5678");
+        Usuario usuario = montarObjetoUsuarioParaCriacao("Joseph", "Cooper Murphy", 50, TipoTelefoneEnum.CELULAR, "1234-5678");
         return given()
                 .header("Content-Type", "application/json")
                 .body(usuario) //a biblioteca faz a "conversão" para JSON de forma automática.
