@@ -1,13 +1,11 @@
 package com.jornada.demo.controller;
 
-import static com.jayway.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
-
-import java.util.HashMap;
-import java.util.Map;
-
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jayway.restassured.RestAssured;
+import com.jornada.demo.domain.Contato;
+import com.jornada.demo.domain.TipoTelefoneEnum;
+import com.jornada.demo.domain.Usuario;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -17,12 +15,11 @@ import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.junit4.SpringRunner;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.jayway.restassured.RestAssured;
-import com.jornada.demo.domain.Contato;
-import com.jornada.demo.domain.TipoTelefoneEnum;
-import com.jornada.demo.domain.Usuario;
+import java.util.HashMap;
+import java.util.Map;
+
+import static com.jayway.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
@@ -42,7 +39,7 @@ public class UsuarioControllerIT {
     @Test
     public void quandoCriarUsuarioEntaoRetornaObjetoUsuario() {
 
-        Map<String, Object> usuarioMap = new HashMap<>();
+        Map<String, String> usuarioMap = new HashMap<>();
         usuarioMap.put("nome", "Forrest");
         usuarioMap.put("sobrenome", "Gump");
         usuarioMap.put("idade", String.valueOf(20));
